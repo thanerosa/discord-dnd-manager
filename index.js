@@ -1,7 +1,7 @@
 const Discord = require('discord.js');
 const client = new Discord.Client();
 const firebase = require("firebase/app");
-let admin = require('firebase-admin');
+var fs = require('fs');
 
 // Add the Firebase products that you want to use
 require("firebase/auth");
@@ -81,8 +81,10 @@ client.on('message', message => {
             })
             break;
         case "dnd-help":
-            var res = `DND Manager commands:\n!dnd-add-game <gameName>\n!dnd-game-info <gameName>\n!dnd-game-characters <gameName>\n!dnd-add-character <gameName> / <characterName> / <race> / <class> / <level>\n!dnd-my-characters\n!dnd-character <characterName>\n!dnd-char-commands\n!dnd-set-session <gameName> / <DD MM HH MM>`;
-            message.channel.send(res);
+            fs.readFile('commands.txt', 'utf8', function (err, data) {
+                if (err) throw err;
+                message.channel.send(data);
+            });
             break;
         default:
             var res = "Sorry! I don't know that command :( try !dnd-help to see a list!";
@@ -254,18 +256,18 @@ function schedule(server, callback) {
                     games.push(snap.data());
                 }
             })
-            
+
             dates.sort(function (a, b) { return a - b });
             var res = `**Upcoming Schedule**\n-------------\n`;
-            for(var x = 0; x < dates.length; x++){
+            for (var x = 0; x < dates.length; x++) {
                 games.forEach(g => {
                     var d = new Date(g.nextSession);
-                    if(d.getTime() == dates[x] && d.getTime() > today){
-                        var date = (d.toDateString()).split(" , "+d.getFullYear());
-                        if(d.getMinutes() == 0){
+                    if (d.getTime() == dates[x] && d.getTime() > today) {
+                        var date = (d.toDateString()).split(" , " + d.getFullYear());
+                        if (d.getMinutes() == 0) {
                             res += `**${date} at ${d.getHours()}:${d.getMinutes()}0:** ${g.name}\n`;
                         }
-                        else{
+                        else {
                             res += `**${date} at ${d.getHours()}:${d.getMinutes()}:** ${g.name}\n`;
                         }
                     }

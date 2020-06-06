@@ -1,0 +1,13 @@
+**DND Manager Commands:**
+-------------------------
+For DMS's:
+*!dnd-add-game <gameName>* = add a new game to the server
+*!dnd-set-session <gameName> / <DD MM HH MM>* = set the next game session
+-------------------------
+For Players:
+*!dnd-add-character <gameName> / <characterName> / <race> / <class> / <level>* = add a new character to a game
+*!dnd-my-characters* = see all your characters
+-------------------------
+For Everyone:
+*!dnd-game-info <gameName>* = see all info about a game
+*!dnd-game-characters <gameName>* = see all characters in a game
