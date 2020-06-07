@@ -22,8 +22,6 @@ var firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 let db = firebase.firestore();
 
-var server;
-
 client.once('ready', () => {
     console.log(`${client.user.tag} is Ready!!`);
 });
@@ -36,6 +34,31 @@ client.on('message', message => {
     const command = args.shift().toLowerCase();
     var res = "Err";
     switch (command) {
+        case "dnd-check":
+            // console.log(client.guilds)
+            var now = new Date();
+            client.guilds.cache.forEach(s => {
+                // console.log(s.id);
+                db.collection("servers").doc(s.id).collection("games").get().then(snapshot =>{
+                    snapshot.forEach(snap => {
+                        console.log("server: ",s.id);
+                        console.log(snap.data());
+                        var sesh = new Date(snap.data().nextSession)
+                        if(now.getDay() == sesh.getDay() && now.getMonth() == sesh.getMonth()){
+                            // if(!snap.data().notified){
+                                db.collection("servers").doc(s.id).collection("games").doc(snap.id).update({notified: true}).then(()=> {
+                                    notify(s, snap.data().name, sesh);
+                                })
+                            // }
+                            console.log("there is a game today!");
+                            if(now.getTime() == sesh.getTime()){
+                                console.log("there is a game right now!");
+                            }
+                        }
+                    })
+                })
+            })
+            break;
         case "dnd-add-game":
             if (message.member.roles.cache.some(role => role.name === 'dm')) {
                 addGame(message.guild.id, message.author.id, args, res => {
@@ -66,6 +89,11 @@ client.on('message', message => {
                 message.channel.send(res);
             })
             break;
+        case "dnd-levelup":
+            levelUp(message.guild.id, message.author, message.content.slice(command.length + 1), res => {
+                message.channel.send(res);
+            })
+            break;
         case "dnd-set-session":
             if (message.member.roles.cache.some(role => role.name === 'dm')) {
                 setSession(message.guild.id, message.author, message.content.slice(command.length + 2), res => {
@@ -93,6 +121,34 @@ client.on('message', message => {
 
     // var res = "Check";
 });
+
+function notify(server, game, time){
+    console.log(`There is a game in the server ${server} called ${game} at ${time}`);
+    // console.log(server.channels.cache);
+    server.channels.cache.forEach(c => {
+        if(c.name === "general"){
+            db.collection("servers").doc(server.id).collection("characters").where("game", "==", game).get().then(snapshot => {
+                console.log(snapshot.size);
+                var res = `Get ready `;
+                snapshot.forEach(snap => {
+                        user = client.users.cache.get(snap.data().player);
+                        res += `${user} `
+
+                })
+                res = res.trim();
+                var mins = time.getMinutes();
+                if(mins == 0){
+                    res += `! **${game}** starts today at ${time.getHours()-1}:${mins}0, be ready!`;
+                }
+                else{
+                    res += `! **${game}** starts today at ${time.getHours()-1}:${mins}, be ready!`;
+                }
+                console.log(res);
+                c.send(res);
+            })
+        }
+    })
+}
 
 function addGame(server, dm, game, callback) {
     var name = caps(game);
@@ -153,6 +209,33 @@ function deleteGame() {
 }
 function deleteCharacter() {
 
+}
+function levelUp(server, author, content, callback){
+    var name = caps(content.trim());
+    console.log(name);
+    db.collection("servers").doc(server).collection("characters").where("name", "==", name).get().then(snapshot => {
+        console.log(snapshot.size);
+        if(snapshot.size > 0){
+            snapshot.forEach(snap => {
+                console.log(snap.data().level);
+                if(snap.data().player == author.id){
+                    var lv = parseInt(snap.data().level);
+                    lv ++;
+                    db.collection("servers").doc(server).collection("characters").doc(name).update({
+                        level: lv
+                    }).then(()=>{
+                        callback(`Okay ${author}! **${name}** is now **Level ${lv}**`);
+                    })
+                }
+                else{
+                    callback(`Sorry! You don't have permission to edit this character`);
+                }
+            })
+        }
+        else{
+            callback(`Sorry! This character doesn't exist`);
+        }
+    })
 }
 function setSession(server, author, args, callback) {
     console.log(typeof args);
